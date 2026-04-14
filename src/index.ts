@@ -1,9 +1,9 @@
 /**
- * Engram — public API entry point
+ * Mnemos — public API entry point
  *
  * Re-exports the core memory functions for programmatic use. If you
- * want the stdio MCP server, import from `@jhizzard/engram/mcp-server`
- * or run the `engram` bin.
+ * want the stdio MCP server, import from `@jhizzard/mnemos/mcp-server`
+ * or run the `mnemos` bin.
  */
 
 export { memoryRemember } from './remember.js';

@@ -1,5 +1,5 @@
 /**
- * Engram — core type definitions
+ * Mnemos — core type definitions
  */
 
 export type SourceType =

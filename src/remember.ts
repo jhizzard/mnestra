@@ -1,5 +1,5 @@
 /**
- * Engram — memory_remember
+ * Mnemos — memory_remember
  *
  * Store a memory with embedding-based deduplication.
  *
@@ -20,7 +20,7 @@ const DEDUP_EXACT_SKIP_THRESHOLD = 0.95;
 export async function memoryRemember(input: RememberInput): Promise<RememberResult> {
   const rawContent = input.content.trim();
   if (!rawContent) {
-    console.error('[engram-store] empty content rejected');
+    console.error('[mnemos-store] empty content rejected');
     return 'skipped';
   }
 
@@ -28,7 +28,7 @@ export async function memoryRemember(input: RememberInput): Promise<RememberResu
   // no private content ever reaches OpenAI or Supabase.
   const { text: content, hadPrivate } = stripPrivate(rawContent);
   if (!content) {
-    console.error('[engram-store] content empty after redaction');
+    console.error('[mnemos-store] content empty after redaction');
     return 'skipped';
   }
 
@@ -51,7 +51,7 @@ export async function memoryRemember(input: RememberInput): Promise<RememberResu
   });
 
   if (matchError) {
-    console.error('[engram-store] match_memories rpc failed:', matchError.message);
+    console.error('[mnemos-store] match_memories rpc failed:', matchError.message);
   }
 
   if (similar && similar.length > 0) {
@@ -73,7 +73,7 @@ export async function memoryRemember(input: RememberInput): Promise<RememberResu
       .eq('id', top.id);
 
     if (updateError) {
-      console.error('[engram-store] update failed:', updateError.message);
+      console.error('[mnemos-store] update failed:', updateError.message);
       return 'skipped';
     }
     return 'updated';
@@ -89,7 +89,7 @@ export async function memoryRemember(input: RememberInput): Promise<RememberResu
   });
 
   if (insertError) {
-    console.error('[engram-store] insert failed:', insertError.message);
+    console.error('[mnemos-store] insert failed:', insertError.message);
     return 'skipped';
   }
 

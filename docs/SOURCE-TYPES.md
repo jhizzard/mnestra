@@ -1,6 +1,6 @@
 # Source types
 
-Every memory in Engram has a `source_type`. The type controls two things:
+Every memory in Mnemos has a `source_type`. The type controls two things:
 
 1. **How fast it decays.** A six-month-old architectural decision should still rank highly; a six-month-old "we tried `npm ci` and it failed" probably shouldn't.
 2. **How much it's weighted.** Decisions and architectural notes outrank raw document chunks in the final fused score.
@@ -20,7 +20,7 @@ The MCP tool `memory_remember` exposes six source types. Two more (`session_summ
 | `session_summary` *(internal)* | Output of `memory_summarize_session` rollups. | 14 days | 1.0x |
 | `document_chunk` *(internal)* | Chunks from indexed docs. | 14 days | 0.6x |
 
-The exact decay formula is `1.0 / (1.0 + age_seconds / (half_life_days * 86400))`, applied per row before RRF fusion. See `migrations/002_engram_search_function.sql`.
+The exact decay formula is `1.0 / (1.0 + age_seconds / (half_life_days * 86400))`, applied per row before RRF fusion. See `migrations/002_mnemos_search_function.sql`.
 
 ## Choosing the right type
 
@@ -35,13 +35,13 @@ If you're not sure, `fact` is a safe default.
 
 ## Why decay differs by type
 
-Long-running engineering work has a strange property: the most important things are usually the oldest. The decision to use Postgres over DynamoDB matters every day. The bug you fixed yesterday matters this week and then never again. A flat 30-day decay (Engram's predecessor used one) crushes both into the same score and drowns the important stuff.
+Long-running engineering work has a strange property: the most important things are usually the oldest. The decision to use Postgres over DynamoDB matters every day. The bug you fixed yesterday matters this week and then never again. A flat 30-day decay (Mnemos's predecessor used one) crushes both into the same score and drowns the important stuff.
 
 The tiered profile fixes this. Decisions and architecture barely move over a year. Bug fixes fade fast so the recall window stays focused on actually-current issues. Code context fades fastest of all because it's the most local — by next week you'll be in a different file anyway.
 
 ## Privacy
 
-Memories can contain `<private>…</private>` blocks that must never leave the caller's machine. Engram redacts them at the earliest possible point:
+Memories can contain `<private>…</private>` blocks that must never leave the caller's machine. Mnemos redacts them at the earliest possible point:
 
 - `memory_remember` runs `stripPrivate()` on the incoming text **before** embedding, before dedup, and before insert. Every `<private>…</private>` block is replaced with the literal string `[redacted]`.
 - The embedding is computed from the redacted text. No private content is ever sent to OpenAI.
@@ -51,7 +51,7 @@ Memories can contain `<private>…</private>` blocks that must never leave the c
 Edge cases covered by unit tests (`tests/privacy.test.ts`):
 
 - **Nested tags** (`<private>outer <private>inner</private> tail</private>`) collapse to a single outer `[redacted]`.
-- **Unclosed tags** (`use <private> data …`) are treated as literal text — Engram never silently swallows trailing content if the block doesn't close. This is a safety choice: a typo shouldn't cost you a memory, and an unclosed block still can't leak through because it never matches the redactor.
+- **Unclosed tags** (`use <private> data …`) are treated as literal text — Mnemos never silently swallows trailing content if the block doesn't close. This is a safety choice: a typo shouldn't cost you a memory, and an unclosed block still can't leak through because it never matches the redactor.
 - **Case insensitivity** — `<PRIVATE>`, `<Private>`, `</private >` all match.
 - **Tag attributes** — `<private data-owner="josh">secret</private>` matches.
 - **Multi-line blocks** — spanning any number of newlines.

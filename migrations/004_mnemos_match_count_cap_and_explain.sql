@@ -1,4 +1,4 @@
--- Engram v0.2 — match_count cap + EXPLAIN variant
+-- Mnemos v0.2 — match_count cap + EXPLAIN variant
 --
 -- Two changes to the search surface:
 --
@@ -6,13 +6,13 @@
 --      Default cap: 200. The original function was unbounded, which risks
 --      runaway queries at scale (10k+ rows pulled per call).
 --
---      Override per-database:   ALTER DATABASE your_db SET engram.max_match_count = 500;
---      Override per-session:    SET engram.max_match_count = 500;
+--      Override per-database:   ALTER DATABASE your_db SET mnemos.max_match_count = 500;
+--      Override per-session:    SET mnemos.max_match_count = 500;
 --      Leave unset:             cap defaults to 200.
 --
 --   2. A new function `memory_hybrid_search_explain` that returns
 --      EXPLAIN (ANALYZE, BUFFERS) output for an equivalent call. Used by
---      `engram diagnose` to troubleshoot slow recall queries.
+--      `mnemos diagnose` to troubleshoot slow recall queries.
 --
 -- Rerun-safe: CREATE OR REPLACE on both.
 
@@ -140,7 +140,7 @@ from scored s
 order by s.score desc
 limit least(
   greatest(match_count, 1),
-  coalesce(nullif(current_setting('engram.max_match_count', true), '')::int, 200)
+  coalesce(nullif(current_setting('mnemos.max_match_count', true), '')::int, 200)
 );
 $$;
 

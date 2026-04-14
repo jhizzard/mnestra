@@ -1,5 +1,5 @@
 /**
- * Engram — memory_status
+ * Mnemos — memory_status
  *
  * Returns total active memory count plus breakdowns by project,
  * source_type, and category.
@@ -61,7 +61,7 @@ export async function memoryStatus(client?: SupabaseClient): Promise<StatusRepor
     // to the legacy approach — correct for ≤1000 active rows, capped above
     // that. A one-time warning tells the operator to apply migration 006.
     console.error(
-      '[engram] memory_status_aggregation RPC unavailable, falling back to legacy client-side aggregation (apply migrations/006_memory_status_rpc.sql to fix):',
+      '[mnemos] memory_status_aggregation RPC unavailable, falling back to legacy client-side aggregation (apply migrations/006_memory_status_rpc.sql to fix):',
       rpcError.message
     );
   }
@@ -73,7 +73,7 @@ export async function memoryStatus(client?: SupabaseClient): Promise<StatusRepor
     .eq('archived', false);
 
   if (countError) {
-    console.error('[engram] status count failed:', countError.message);
+    console.error('[mnemos] status count failed:', countError.message);
   }
 
   const { data: items, error: itemsError } = await supabase
@@ -83,7 +83,7 @@ export async function memoryStatus(client?: SupabaseClient): Promise<StatusRepor
     .eq('archived', false);
 
   if (itemsError) {
-    console.error('[engram] status breakdown fetch failed:', itemsError.message);
+    console.error('[mnemos] status breakdown fetch failed:', itemsError.message);
   }
 
   const { count: sessionCount, error: sessionError } = await supabase
@@ -91,7 +91,7 @@ export async function memoryStatus(client?: SupabaseClient): Promise<StatusRepor
     .select('id', { count: 'exact', head: true });
 
   if (sessionError) {
-    console.error('[engram] status session count failed:', sessionError.message);
+    console.error('[mnemos] status session count failed:', sessionError.message);
   }
 
   const byProject: Record<string, number> = {};

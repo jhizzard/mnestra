@@ -1,6 +1,6 @@
-# Contributing to Engram
+# Contributing to Mnemos
 
-Thanks for your interest in Engram. This is a small solo project right now, but contributions are welcome.
+Thanks for your interest in Mnemos. This is a small solo project right now, but contributions are welcome.
 
 ## Before opening a PR
 
@@ -11,7 +11,7 @@ Thanks for your interest in Engram. This is a small solo project right now, but 
 ## What I'm looking for
 
 - **Bug fixes** — especially anything Postgres-version-specific (HNSW, pgvector quirks, RLS edge cases)
-- **Adapter examples** — recipes for wiring Engram into editors and tools other than Claude Code, Cursor, Windsurf
+- **Adapter examples** — recipes for wiring Mnemos into editors and tools other than Claude Code, Cursor, Windsurf
 - **SQL improvements** — better recall ranking, smarter project affinity, additional decay profiles
 - **Tests** — there are none in v0.1; a Vitest harness against a local Postgres would be very welcome
 - **Documentation improvements** — especially worked examples of `memory_summarize_session` against real session transcripts
@@ -19,15 +19,15 @@ Thanks for your interest in Engram. This is a small solo project right now, but 
 ## What I'd rather you discuss first
 
 - Major architectural changes (e.g. swapping Supabase for a different vector store, adding an agent framework)
-- New external dependencies — Engram intentionally has a small dep tree
+- New external dependencies — Mnemos intentionally has a small dep tree
 - Anything that changes the migration history (rename, reorder, or rewrite an applied migration)
 - Anything that changes the MCP tool surface (the six tool names and their input schemas are part of the public contract)
 
 ## Local setup
 
 ```bash
-git clone https://github.com/jhizzard/engram.git
-cd engram
+git clone https://github.com/jhizzard/mnemos.git
+cd mnemos
 npm install
 npm run typecheck
 npm run build
@@ -47,13 +47,13 @@ It will block on stdin waiting for MCP messages, which is correct.
 ## Code conventions
 
 - **Logging:** every `console.error` and `console.log` must use a `[tag]` prefix. The valid tags are:
-  - `[engram]` — general
-  - `[engram-mcp]` — MCP tool calls
-  - `[engram-search]` — search and recall paths
-  - `[engram-store]` — remember, dedup, forget
-  - `[engram-embed]` — embedding generation
-  - `[engram-consolidate]` — the consolidation background job
-- **No silent `catch {}` blocks.** If you swallow an error, log it with the appropriate `[engram-*]` tag and an explanation.
+  - `[mnemos]` — general
+  - `[mnemos-mcp]` — MCP tool calls
+  - `[mnemos-search]` — search and recall paths
+  - `[mnemos-store]` — remember, dedup, forget
+  - `[mnemos-embed]` — embedding generation
+  - `[mnemos-consolidate]` — the consolidation background job
+- **No silent `catch {}` blocks.** If you swallow an error, log it with the appropriate `[mnemos-*]` tag and an explanation.
 - **Strict TypeScript.** No `any` unless interacting with an external untyped surface. No `// @ts-ignore` without a comment explaining why.
 - **Commit messages** should be imperative ("Add X" not "Added X") and describe the why, not just the what.
 - **No AI co-author trailers** in commit messages. If you used an AI assistant, you can disclose it however you like in your PR description, just not in the commit metadata.

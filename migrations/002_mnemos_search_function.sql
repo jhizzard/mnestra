@@ -1,4 +1,4 @@
--- Engram v0.1 — memory_hybrid_search
+-- Mnemos v0.1 — memory_hybrid_search
 --
 -- Reciprocal rank fusion over full-text and semantic search, with the
 -- three SQL-side fixes from RAG-MEMORY-IMPROVEMENTS-AND-TERMDECK-STRATEGY.md:

@@ -1,5 +1,5 @@
 /**
- * Engram — memory_status unit tests
+ * Mnemos — memory_status unit tests
  *
  * Drives memoryStatus() with an injected fake Supabase client so the tests
  * never touch the real DB. The important assertion is that when the
@@ -81,7 +81,7 @@ test('memoryStatus uses memory_status_aggregation RPC when available', async () 
       data: {
         total_active: 3397,
         sessions: 42,
-        by_project: { termdeck: 1200, engram: 1000, rumen: 1197 },
+        by_project: { termdeck: 1200, mnemos: 1000, rumen: 1197 },
         by_source_type: { fact: 2000, decision: 900, bug_fix: 497 },
         by_category: { technical: 3397 },
       },

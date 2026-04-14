@@ -1,5 +1,5 @@
 /**
- * Engram — three-layer progressive disclosure search
+ * Mnemos — three-layer progressive disclosure search
  *
  *   memory_index    → compact { id, snippet, source_type, project, created_at }
  *                     results, 80–120 tokens per hit. Drill-down friendly.
@@ -100,7 +100,7 @@ export async function memoryIndex(input: IndexInput): Promise<IndexHit[]> {
   });
 
   if (error) {
-    console.error('[engram-index] memory_hybrid_search failed:', error.message);
+    console.error('[mnemos-index] memory_hybrid_search failed:', error.message);
     return [];
   }
 
@@ -132,7 +132,7 @@ export async function memoryTimeline(input: TimelineInput): Promise<IndexHit[]> 
       .eq('archived', false)
       .maybeSingle();
     if (error) {
-      console.error('[engram-timeline] anchor lookup failed:', error.message);
+      console.error('[mnemos-timeline] anchor lookup failed:', error.message);
       return [];
     }
     if (!data) return [];
@@ -164,7 +164,7 @@ export async function memoryTimeline(input: TimelineInput): Promise<IndexHit[]> 
     .limit(radius * 2 + 1);
 
   if (error) {
-    console.error('[engram-timeline] window query failed:', error.message);
+    console.error('[mnemos-timeline] window query failed:', error.message);
     return [];
   }
 
@@ -205,7 +205,7 @@ export async function memoryGet(input: GetInput): Promise<MemoryItem[]> {
     .eq('archived', false);
 
   if (error) {
-    console.error('[engram-get] batch fetch failed:', error.message);
+    console.error('[mnemos-get] batch fetch failed:', error.message);
     return [];
   }
   return (data ?? []) as MemoryItem[];

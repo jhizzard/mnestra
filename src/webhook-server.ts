@@ -1,15 +1,15 @@
 /**
- * Engram — HTTP webhook server
+ * Mnemos — HTTP webhook server
  *
  * Exposes the same functions the MCP stdio server dispatches to, over a
  * tiny HTTP surface. TermDeck and other clients POST terminal events
  * here instead of spawning an MCP child process per ingest.
  *
- *   POST /engram           { op: 'remember'|'recall'|'search'|'status', ...args }
+ *   POST /mnemos           { op: 'remember'|'recall'|'search'|'status', ...args }
  *   GET  /healthz          liveness + store stats
  *   GET  /observation/:id  single memory by UUID (citation endpoint)
  *
- * Port: ENGRAM_WEBHOOK_PORT, default 37778.
+ * Port: MNEMOS_WEBHOOK_PORT, default 37778.
  */
 
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
@@ -68,7 +68,7 @@ export interface DispatchResult {
 }
 
 /**
- * Dispatch a `{ op, ...args }` payload to the matching Engram function.
+ * Dispatch a `{ op, ...args }` payload to the matching Mnemos function.
  * Exported so tests can drive it with mocked deps.
  */
 export async function dispatchOp(
@@ -270,14 +270,14 @@ export interface WebhookServerOptions {
 }
 
 export function startWebhookServer(opts: WebhookServerOptions = {}): Server {
-  const port = opts.port ?? Number(process.env.ENGRAM_WEBHOOK_PORT ?? 37778);
+  const port = opts.port ?? Number(process.env.MNEMOS_WEBHOOK_PORT ?? 37778);
   const deps = opts.deps ?? defaultDeps;
 
   const server = createServer(async (req, res) => {
     try {
       const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
 
-      if (req.method === 'POST' && url.pathname === '/engram') {
+      if (req.method === 'POST' && url.pathname === '/mnemos') {
         const body = await readJsonBody(req);
         const result = await dispatchOp(body, deps);
         return sendJson(res, result.status, result.body);
@@ -298,7 +298,7 @@ export function startWebhookServer(opts: WebhookServerOptions = {}): Server {
     } catch (err) {
       const status =
         err instanceof HttpError ? err.httpStatus : (err as { httpStatus?: number }).httpStatus ?? 500;
-      if (status >= 500) console.error('[engram-webhook] handler error:', err);
+      if (status >= 500) console.error('[mnemos-webhook] handler error:', err);
       if (!res.headersSent) {
         sendJson(res, status, { ok: false, error: (err as Error).message });
       }
@@ -306,11 +306,11 @@ export function startWebhookServer(opts: WebhookServerOptions = {}): Server {
   });
 
   server.listen(port, () => {
-    console.error(`[engram-webhook] listening on :${port}`);
+    console.error(`[mnemos-webhook] listening on :${port}`);
   });
 
   const shutdown = (signal: string) => {
-    console.error(`[engram-webhook] ${signal} received, closing`);
+    console.error(`[mnemos-webhook] ${signal} received, closing`);
     server.close(() => process.exit(0));
     setTimeout(() => process.exit(1), 5000).unref();
   };

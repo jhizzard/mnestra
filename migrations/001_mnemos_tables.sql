@@ -1,10 +1,10 @@
--- Engram v0.1 — core tables
+-- Mnemos v0.1 — core tables
 --
 -- Run against a Postgres 15+ database that has pgvector installed
 -- (Supabase already ships with it). Apply in order:
---   001_engram_tables.sql
---   002_engram_search_function.sql
---   003_engram_event_webhook.sql
+--   001_mnemos_tables.sql
+--   002_mnemos_search_function.sql
+--   003_mnemos_event_webhook.sql
 
 create extension if not exists "vector";
 create extension if not exists "pg_trgm";

@@ -1,6 +1,6 @@
 # RAG fixes applied
 
-Engram v0.1 ships with all six fixes from `RAG-MEMORY-IMPROVEMENTS-AND-TERMDECK-STRATEGY.md`. This document is the audit trail: what each fix is, where it lives in the codebase, and how to verify it.
+Mnemos v0.1 ships with all six fixes from `RAG-MEMORY-IMPROVEMENTS-AND-TERMDECK-STRATEGY.md`. This document is the audit trail: what each fix is, where it lives in the codebase, and how to verify it.
 
 ## Fix 1 — Tiered recency decay by source type
 
@@ -13,7 +13,7 @@ Engram v0.1 ships with all six fixes from `RAG-MEMORY-IMPROVEMENTS-AND-TERMDECK-
 - `bug_fix`, `debugging` — 30 days
 - `session_summary`, `document_chunk`, `code_context` — 14 days
 
-**Where.** `migrations/002_engram_search_function.sql`, inside the `scored` CTE of `memory_hybrid_search`. Search for the comment `Fix 1: tiered recency decay by source_type`.
+**Where.** `migrations/002_mnemos_search_function.sql`, inside the `scored` CTE of `memory_hybrid_search`. Search for the comment `Fix 1: tiered recency decay by source_type`.
 
 **How to verify.** Insert a `decision` row dated 60 days ago and a `fact` row dated 60 days ago. Run a recall query that matches both semantically. The decision should rank higher purely on the decay multiplier.
 
@@ -44,7 +44,7 @@ Engram v0.1 ships with all six fixes from `RAG-MEMORY-IMPROVEMENTS-AND-TERMDECK-
 - `fact` × 1.0
 - `document_chunk` × 0.6
 
-**Where.** `migrations/002_engram_search_function.sql`, inside the `scored` CTE. Search for the comment `Fix 3: source_type weighting`.
+**Where.** `migrations/002_mnemos_search_function.sql`, inside the `scored` CTE. Search for the comment `Fix 3: source_type weighting`.
 
 **How to verify.** With a mixed corpus (decisions, facts, document chunks), run `memory_search` with `limit: 5`. Decisions should appear above document chunks of comparable raw similarity.
 
@@ -79,7 +79,7 @@ Engram v0.1 ships with all six fixes from `RAG-MEMORY-IMPROVEMENTS-AND-TERMDECK-
 
 When `filter_project` is `NULL` (cross-project search), no multiplier is applied.
 
-**Where.** `migrations/002_engram_search_function.sql`, inside the `scored` CTE. Search for the comment `Fix 5: project affinity scoring`.
+**Where.** `migrations/002_mnemos_search_function.sql`, inside the `scored` CTE. Search for the comment `Fix 5: project affinity scoring`.
 
 **How to verify.** Insert one memory in `project: 'app-a'` and one in `project: 'app-b'` with identical content. Run `memory_recall` with `project: 'app-a'`. The `app-a` memory should rank above the `app-b` memory.
 
@@ -89,13 +89,13 @@ When `filter_project` is `NULL` (cross-project search), no multiplier is applied
 
 **Problem.** Memories only flowed at end-of-session. For tools like TermDeck that emit live events ("server started", "tests failing"), the user wants those events in memory immediately, not after the session ends.
 
-**Fix.** Engram exposes its core functions as a programmatic library (`@jhizzard/engram`) so any host process can call `memoryRemember` directly per-event, without spawning a new MCP child each time. The MCP server in `mcp-server/index.ts` is one consumer; embedded library use is the other.
+**Fix.** Mnemos exposes its core functions as a programmatic library (`@jhizzard/mnemos`) so any host process can call `memoryRemember` directly per-event, without spawning a new MCP child each time. The MCP server in `mcp-server/index.ts` is one consumer; embedded library use is the other.
 
-A future v0.2 will add an HTTP webhook server (`/api/memory/event`) so non-Node clients can POST events. `migrations/003_engram_event_webhook.sql` is a placeholder marker for that work — the live ingestion logic is application-layer, not SQL.
+A future v0.2 will add an HTTP webhook server (`/api/memory/event`) so non-Node clients can POST events. `migrations/003_mnemos_event_webhook.sql` is a placeholder marker for that work — the live ingestion logic is application-layer, not SQL.
 
 **Where.**
 - Library entry point: `src/index.ts`
-- Placeholder migration: `migrations/003_engram_event_webhook.sql`
+- Placeholder migration: `migrations/003_mnemos_event_webhook.sql`
 - Documentation of the integration pattern: `docs/INTEGRATION.md`
 
-**How to verify.** Import `memoryRemember` from `@jhizzard/engram` in a small Node script and call it in a loop. Confirm rows appear in `memory_items` without spawning the MCP server.
+**How to verify.** Import `memoryRemember` from `@jhizzard/mnemos` in a small Node script and call it in a loop. Confirm rows appear in `memory_items` without spawning the MCP server.

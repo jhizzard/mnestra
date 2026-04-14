@@ -1,8 +1,8 @@
 /**
- * Engram — OpenAI embedding wrapper
+ * Mnemos — OpenAI embedding wrapper
  *
  * Uses text-embedding-3-large at 1536 dimensions. This matches the
- * vector(1536) column in migrations/001_engram_tables.sql and the HNSW
+ * vector(1536) column in migrations/001_mnemos_tables.sql and the HNSW
  * indexes. If you change the model or dimensions, you must reindex.
  */
 
@@ -28,7 +28,7 @@ async function withRetry<T>(fn: () => Promise<T>, opts: RetryOpts = {}): Promise
         e?.code === 'ETIMEDOUT';
 
       if (!retryable || attempt === maxRetries) {
-        console.error(`[engram-embed] ${label} failed:`, err);
+        console.error(`[mnemos-embed] ${label} failed:`, err);
         throw err;
       }
 
@@ -36,14 +36,14 @@ async function withRetry<T>(fn: () => Promise<T>, opts: RetryOpts = {}): Promise
       await new Promise((r) => setTimeout(r, delay));
     }
   }
-  throw new Error(`[engram-embed] ${label} failed after ${maxRetries} retries`);
+  throw new Error(`[mnemos-embed] ${label} failed after ${maxRetries} retries`);
 }
 
 export async function generateEmbedding(text: string): Promise<number[]> {
   const apiKey = process.env.OPENAI_API_KEY ?? '';
   if (!apiKey) {
-    console.error('[engram-embed] missing OPENAI_API_KEY');
-    throw new Error('Engram: OPENAI_API_KEY is required for embedding generation');
+    console.error('[mnemos-embed] missing OPENAI_API_KEY');
+    throw new Error('Mnemos: OPENAI_API_KEY is required for embedding generation');
   }
 
   return withRetry(async () => {
@@ -61,7 +61,7 @@ export async function generateEmbedding(text: string): Promise<number[]> {
     });
 
     if (!response.ok) {
-      const err = new Error(`[engram-embed] OpenAI embedding error: ${response.status}`) as Error & {
+      const err = new Error(`[mnemos-embed] OpenAI embedding error: ${response.status}`) as Error & {
         status?: number;
       };
       err.status = response.status;
@@ -71,7 +71,7 @@ export async function generateEmbedding(text: string): Promise<number[]> {
     const data = (await response.json()) as { data?: Array<{ embedding?: number[] }> };
     const embedding = data?.data?.[0]?.embedding;
     if (!embedding) {
-      throw new Error('[engram-embed] OpenAI returned no embedding');
+      throw new Error('[mnemos-embed] OpenAI returned no embedding');
     }
     return embedding;
   }, { label: 'embedding' });

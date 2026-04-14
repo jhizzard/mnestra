@@ -1,22 +1,22 @@
 {
-  "name": "@jhizzard/engram",
+  "name": "@jhizzard/mnemos",
   "version": "0.2.0",
-  "description": "Persistent developer memory MCP server — the LLM is stateless, Engram isn't",
+  "description": "Persistent developer memory MCP server — the LLM is stateless, Mnemos isn't",
   "license": "MIT",
   "author": "Joshua Izzard <jhizzard@gmail.com>",
-  "homepage": "https://github.com/jhizzard/engram",
+  "homepage": "https://github.com/jhizzard/mnemos",
   "repository": {
     "type": "git",
-    "url": "https://github.com/jhizzard/engram.git"
+    "url": "https://github.com/jhizzard/mnemos.git"
   },
   "bugs": {
-    "url": "https://github.com/jhizzard/engram/issues"
+    "url": "https://github.com/jhizzard/mnemos/issues"
   },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "engram": "./dist/mcp-server/index.js"
+    "mnemos": "./dist/mcp-server/index.js"
   },
   "files": [
     "dist",

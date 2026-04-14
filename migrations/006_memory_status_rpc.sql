@@ -1,4 +1,4 @@
--- Engram migration 006 — memory_status_aggregation RPC
+-- Mnemos migration 006 — memory_status_aggregation RPC
 --
 -- Why: `memoryStatus()` previously did a plain
 --   supabase.from('memory_items').select('project, source_type, category')

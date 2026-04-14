@@ -1,5 +1,5 @@
 /**
- * Engram — privacy tag redaction
+ * Mnemos — privacy tag redaction
  *
  * Memories may arrive containing `<private>...</private>` blocks that must
  * never be embedded, stored, or sent to any downstream LLM. We strip them

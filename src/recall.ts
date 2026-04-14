@@ -1,5 +1,5 @@
 /**
- * Engram — memory_recall
+ * Mnemos — memory_recall
  *
  * Smart retrieval. Calls the memory_hybrid_search SQL function (which
  * already applies Fix 1 tiered decay, Fix 3 source_type weighting, and
@@ -106,7 +106,7 @@ export async function memoryRecall(input: RecallInput): Promise<RecallOutput> {
   });
 
   if (error) {
-    console.error('[engram-search] memory_hybrid_search failed:', error.message);
+    console.error('[mnemos-search] memory_hybrid_search failed:', error.message);
     return { hits: [], tokens_used: 0, text: `Search error: ${error.message}` };
   }
 

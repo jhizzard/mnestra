@@ -1,11 +1,11 @@
--- Engram v0.1 — real-time event webhook (Fix 6)
+-- Mnemos v0.1 — real-time event webhook (Fix 6)
 --
 -- Fix 6 from RAG-MEMORY-IMPROVEMENTS-AND-TERMDECK-STRATEGY.md is a
 -- real-time event intake path so TermDeck (or any other client) can
 -- POST terminal events — "server started on :8080", "tests failing",
 -- "error detected" — and have them land in memory immediately.
 --
--- That intake is implemented as an HTTP endpoint inside the Engram MCP
+-- That intake is implemented as an HTTP endpoint inside the Mnemos MCP
 -- server process, not as a SQL trigger. This file exists as a placeholder
 -- so the migration history is explicit and future database-side changes
 -- (e.g. an events queue table for async ingestion) have a home.

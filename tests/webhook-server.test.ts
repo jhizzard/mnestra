@@ -1,5 +1,5 @@
 /**
- * Engram — webhook-server unit tests
+ * Mnemos — webhook-server unit tests
  *
  * Drives dispatchOp() with mocked deps so no Supabase client is required.
  */
@@ -90,7 +90,7 @@ test('dispatchOp remember forwards content and returns result', async () => {
   });
 
   const result = await dispatchOp(
-    { op: 'remember', content: 'Session started at 9am', project: 'engram' },
+    { op: 'remember', content: 'Session started at 9am', project: 'mnemos' },
     deps
   );
   assert.equal(result.status, 200);
@@ -103,7 +103,7 @@ test('dispatchOp status returns report fields', async () => {
     status: async () => ({
       total_active: 2600,
       sessions: 42,
-      by_project: { termdeck: 1000, engram: 1600 },
+      by_project: { termdeck: 1000, mnemos: 1600 },
       by_source_type: { fact: 2000, decision: 600 },
       by_category: { technical: 2600 },
     }),
@@ -131,7 +131,7 @@ test('dispatchOp recall requires question or query', async () => {
   assert.equal(result.status, 400);
 });
 
-test('POST /engram with malformed JSON returns 400, not 500', async () => {
+test('POST /mnemos with malformed JSON returns 400, not 500', async () => {
   const server = startWebhookServer({ port: 0, deps: mockDeps() });
   await new Promise<void>((resolve) => {
     if (server.listening) resolve();
@@ -139,7 +139,7 @@ test('POST /engram with malformed JSON returns 400, not 500', async () => {
   });
   try {
     const { port } = server.address() as AddressInfo;
-    const res = await fetch(`http://127.0.0.1:${port}/engram`, {
+    const res = await fetch(`http://127.0.0.1:${port}/mnemos`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: 'not json',

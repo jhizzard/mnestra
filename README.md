@@ -1,31 +1,31 @@
-# Engram
+# Mnemos
 
-**The LLM is stateless. Engram isn't.**
+**The LLM is stateless. Mnemos isn't.**
 
-Engram is a persistent developer-memory MCP server. It gives Claude Code, Cursor, Windsurf, Cline, Continue, and any other Model Context Protocol client a long-term memory backed by Postgres + pgvector (Supabase by default). Nine MCP tools — `memory_remember`, `memory_recall`, `memory_search`, `memory_forget`, `memory_status`, `memory_summarize_session`, plus the three-layer progressive-disclosure set `memory_index` / `memory_timeline` / `memory_get` — let your assistant store decisions, recall them across sessions, and surface the right context when you start a new conversation. An optional HTTP webhook server (`engram serve`) exposes the same operations to non-MCP clients.
+Mnemos is a persistent developer-memory MCP server. It gives Claude Code, Cursor, Windsurf, Cline, Continue, and any other Model Context Protocol client a long-term memory backed by Postgres + pgvector (Supabase by default). Nine MCP tools — `memory_remember`, `memory_recall`, `memory_search`, `memory_forget`, `memory_status`, `memory_summarize_session`, plus the three-layer progressive-disclosure set `memory_index` / `memory_timeline` / `memory_get` — let your assistant store decisions, recall them across sessions, and surface the right context when you start a new conversation. An optional HTTP webhook server (`mnemos serve`) exposes the same operations to non-MCP clients.
 
 ---
 
-## Why Engram exists
+## Why Mnemos exists
 
 Every new chat with an LLM starts from zero. You explain the project, the conventions, the bug you fixed last Tuesday, the reason you picked Postgres over DynamoDB — and tomorrow you do it all again. Codebases have CLAUDE.md / AGENTS.md / cursor rules, but those are static. They don't grow as you work.
 
-Engram is the writable side of that. As your assistant works it stores discrete facts, decisions, and bug fixes into a vector database with embeddings and metadata. On the next session it can recall the relevant slice — scoped to the project you're in, ranked by importance and recency, deduplicated, and trimmed to a token budget.
+Mnemos is the writable side of that. As your assistant works it stores discrete facts, decisions, and bug fixes into a vector database with embeddings and metadata. On the next session it can recall the relevant slice — scoped to the project you're in, ranked by importance and recency, deduplicated, and trimmed to a token budget.
 
-It is deliberately small. Six MCP tools, one schema, one SQL function. No agent framework, no orchestration layer, no proprietary cloud. If you can run Postgres with pgvector, you can run Engram.
+It is deliberately small. Six MCP tools, one schema, one SQL function. No agent framework, no orchestration layer, no proprietary cloud. If you can run Postgres with pgvector, you can run Mnemos.
 
 ---
 
 ## Install
 
 ```bash
-npm install -g @jhizzard/engram
+npm install -g @jhizzard/mnemos
 ```
 
 Or pin it as a project dev dependency:
 
 ```bash
-npm install --save-dev @jhizzard/engram
+npm install --save-dev @jhizzard/mnemos
 ```
 
 You will also need:
@@ -39,9 +39,9 @@ You will also need:
 The `migrations/` directory contains three SQL files. Apply them in order against your database:
 
 ```bash
-psql "$DATABASE_URL" -f node_modules/@jhizzard/engram/migrations/001_engram_tables.sql
-psql "$DATABASE_URL" -f node_modules/@jhizzard/engram/migrations/002_engram_search_function.sql
-psql "$DATABASE_URL" -f node_modules/@jhizzard/engram/migrations/003_engram_event_webhook.sql
+psql "$DATABASE_URL" -f node_modules/@jhizzard/mnemos/migrations/001_mnemos_tables.sql
+psql "$DATABASE_URL" -f node_modules/@jhizzard/mnemos/migrations/002_mnemos_search_function.sql
+psql "$DATABASE_URL" -f node_modules/@jhizzard/mnemos/migrations/003_mnemos_event_webhook.sql
 ```
 
 If you're using Supabase, paste each file into the SQL editor and run them in order.
@@ -50,7 +50,7 @@ If you're using Supabase, paste each file into the SQL editor and run them in or
 
 ## MCP setup
 
-All of the configurations below assume the `engram` binary is on your `PATH` (because you ran `npm install -g`). If you'd rather run it from a checkout, replace `"command": "engram"` with `"command": "node"` and add `"args": ["/absolute/path/to/dist/mcp-server/index.js"]`.
+All of the configurations below assume the `mnemos` binary is on your `PATH` (because you ran `npm install -g`). If you'd rather run it from a checkout, replace `"command": "mnemos"` with `"command": "node"` and add `"args": ["/absolute/path/to/dist/mcp-server/index.js"]`.
 
 ### Claude Code
 
@@ -59,8 +59,8 @@ Edit `~/.claude/mcp.json`:
 ```json
 {
   "mcpServers": {
-    "engram": {
-      "command": "engram",
+    "mnemos": {
+      "command": "mnemos",
       "env": {
         "SUPABASE_URL": "https://YOUR-PROJECT.supabase.co",
         "SUPABASE_SERVICE_ROLE_KEY": "YOUR-SERVICE-ROLE-KEY",
@@ -81,8 +81,8 @@ Edit `~/.cursor/mcp.json` (Cursor uses the same MCP config shape):
 ```json
 {
   "mcpServers": {
-    "engram": {
-      "command": "engram",
+    "mnemos": {
+      "command": "mnemos",
       "env": {
         "SUPABASE_URL": "https://YOUR-PROJECT.supabase.co",
         "SUPABASE_SERVICE_ROLE_KEY": "YOUR-SERVICE-ROLE-KEY",
@@ -100,8 +100,8 @@ Edit `~/.codeium/windsurf/mcp_config.json`:
 ```json
 {
   "mcpServers": {
-    "engram": {
-      "command": "engram",
+    "mnemos": {
+      "command": "mnemos",
       "env": {
         "SUPABASE_URL": "https://YOUR-PROJECT.supabase.co",
         "SUPABASE_SERVICE_ROLE_KEY": "YOUR-SERVICE-ROLE-KEY",
@@ -114,11 +114,11 @@ Edit `~/.codeium/windsurf/mcp_config.json`:
 
 ### Generic stdio MCP (Cline, Continue, anything else)
 
-Engram speaks the standard stdio MCP transport. Any client that lets you point at a binary will work:
+Mnemos speaks the standard stdio MCP transport. Any client that lets you point at a binary will work:
 
 ```json
 {
-  "command": "engram",
+  "command": "mnemos",
   "args": [],
   "env": {
     "SUPABASE_URL": "https://YOUR-PROJECT.supabase.co",
@@ -139,7 +139,7 @@ Engram speaks the standard stdio MCP transport. Any client that lets you point a
 | `memory_search` | Low-level filtered search. Returns raw scored hits. Use this for admin tooling or debugging recall. |
 | `memory_forget` | Soft-delete a memory by UUID. The row is archived, not destroyed. |
 | `memory_status` | Stats: total active memories, sessions processed, breakdown by project / source_type / category. |
-| `memory_summarize_session` | Pass in a session transcript or document; Engram extracts discrete facts via Haiku and stores each as a memory. |
+| `memory_summarize_session` | Pass in a session transcript or document; Mnemos extracts discrete facts via Haiku and stores each as a memory. |
 | `memory_index` | Three-layer search step 1. Compact `{id, snippet≤120, source_type, project, created_at}` hits (~80–120 tokens each). Drill into IDs with `memory_get`, or surround with `memory_timeline`. |
 | `memory_timeline` | Three-layer search step 2. Memories from the same project chronologically surrounding either a query hit or a specific observation ID. Windows: `1h` / `24h` / `7d`. |
 | `memory_get` | Three-layer search step 3. Batch-fetch full rows by UUID (1–100 IDs). Batch-only to discourage N+1 calls. |
@@ -150,28 +150,28 @@ The `memory_index` → `memory_timeline` → `memory_get` trio is designed for t
 
 ### HTTP webhook server (non-MCP clients)
 
-Run `engram serve` to start a tiny HTTP surface on `ENGRAM_WEBHOOK_PORT` (default `37778`). It exposes the same operations as the MCP tools over JSON:
+Run `mnemos serve` to start a tiny HTTP surface on `MNEMOS_WEBHOOK_PORT` (default `37778`). It exposes the same operations as the MCP tools over JSON:
 
-- `POST /engram` with body `{ "op": "remember" | "recall" | "search" | "status" | "index" | "timeline" | "get", ...args }`.
+- `POST /mnemos` with body `{ "op": "remember" | "recall" | "search" | "status" | "index" | "timeline" | "get", ...args }`.
 - `GET  /healthz` — returns `{ ok, version, store: { rows, last_write } }`.
 - `GET  /observation/:id` — single memory by UUID (the citation endpoint). Same shape as a `memory_get` row.
 
-The MCP stdio server is unaffected — `engram` with no subcommand still starts it.
+The MCP stdio server is unaffected — `mnemos` with no subcommand still starts it.
 
 ### CLI subcommands
 
 | Command | What it does |
 |---|---|
-| `engram` | Start the stdio MCP server (default — backwards compatible). |
-| `engram serve` | Start the HTTP webhook server on `$ENGRAM_WEBHOOK_PORT` (default 37778). |
-| `engram export --project <name> --since <iso>` | Stream every matching memory as JSONL on stdout. Paginated, never loads the full store into memory. Include embeddings so re-imports don't re-embed. |
-| `engram import` | Read JSONL from stdin. Skips rows whose `id` already exists, embeds rows that are missing an `embedding`, preserves `id`/`created_at`/`updated_at`/`is_active`/`archived`/`superseded_by` when present. |
+| `mnemos` | Start the stdio MCP server (default — backwards compatible). |
+| `mnemos serve` | Start the HTTP webhook server on `$MNEMOS_WEBHOOK_PORT` (default 37778). |
+| `mnemos export --project <name> --since <iso>` | Stream every matching memory as JSONL on stdout. Paginated, never loads the full store into memory. Include embeddings so re-imports don't re-embed. |
+| `mnemos import` | Read JSONL from stdin. Skips rows whose `id` already exists, embeds rows that are missing an `embedding`, preserves `id`/`created_at`/`updated_at`/`is_active`/`archived`/`superseded_by` when present. |
 
-Export/import is the migration path out of (or into) Engram:
+Export/import is the migration path out of (or into) Mnemos:
 
 ```bash
-engram export --project termdeck > termdeck-backup.jsonl
-engram import < termdeck-backup.jsonl
+mnemos export --project termdeck > termdeck-backup.jsonl
+mnemos import < termdeck-backup.jsonl
 ```
 
 ### Configuring `memory_hybrid_search`
@@ -179,8 +179,8 @@ engram import < termdeck-backup.jsonl
 Starting in 0.2.0, `memory_hybrid_search` caps `match_count` at 200 by default so a single call cannot pull tens of thousands of rows. Override per-database or per-session:
 
 ```sql
-ALTER DATABASE your_db SET engram.max_match_count = 500;
-SET engram.max_match_count = 500;
+ALTER DATABASE your_db SET mnemos.max_match_count = 500;
+SET mnemos.max_match_count = 500;
 ```
 
 `memory_hybrid_search_explain(...)` is a sibling function that returns `EXPLAIN (ANALYZE, BUFFERS)` output for the equivalent call. Use it when diagnosing slow recall on very large stores.
@@ -215,17 +215,17 @@ Three tables and one search function:
 - **`memory_relationships`** — typed relationships between memories: `supersedes`, `relates_to`, `contradicts`, `elaborates`, `caused_by`.
 - **`memory_hybrid_search()`** — RRF fusion of full-text + semantic search, with tiered recency decay, source_type weighting, and project affinity scoring all in one SQL function.
 
-Full DDL is in [`migrations/001_engram_tables.sql`](migrations/001_engram_tables.sql) and [`migrations/002_engram_search_function.sql`](migrations/002_engram_search_function.sql). Schema documentation is at [`docs/SCHEMA.md`](docs/SCHEMA.md).
+Full DDL is in [`migrations/001_mnemos_tables.sql`](migrations/001_mnemos_tables.sql) and [`migrations/002_mnemos_search_function.sql`](migrations/002_mnemos_search_function.sql). Schema documentation is at [`docs/SCHEMA.md`](docs/SCHEMA.md).
 
 ---
 
 ## Pairs with TermDeck
 
-[TermDeck](https://github.com/jhizzard/termdeck) is a browser-based terminal multiplexer with rich metadata overlays and per-terminal AI agent detection. Wire Engram into TermDeck and every terminal session can write its events into shared memory; the "Ask about this terminal" input then becomes a recall query against the same store. See [`docs/INTEGRATION.md`](docs/INTEGRATION.md) for the integration recipe.
+[TermDeck](https://github.com/jhizzard/termdeck) is a browser-based terminal multiplexer with rich metadata overlays and per-terminal AI agent detection. Wire Mnemos into TermDeck and every terminal session can write its events into shared memory; the "Ask about this terminal" input then becomes a recall query against the same store. See [`docs/INTEGRATION.md`](docs/INTEGRATION.md) for the integration recipe.
 
 ## Pairs with Rumen
 
-[Rumen](https://github.com/jhizzard/rumen) is an async learning layer that runs on top of any pgvector memory store, including Engram. Rumen wakes on a schedule, reads recent session activity, cross-references it with everything you've ever stored, and writes the connections back as `rumen_insights` rows. Engram is the memory; Rumen is the part of the stomach that keeps chewing after you stop working.
+[Rumen](https://github.com/jhizzard/rumen) is an async learning layer that runs on top of any pgvector memory store, including Mnemos. Rumen wakes on a schedule, reads recent session activity, cross-references it with everything you've ever stored, and writes the connections back as `rumen_insights` rows. Mnemos is the memory; Rumen is the part of the stomach that keeps chewing after you stop working.
 
 ---
 
