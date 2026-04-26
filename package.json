@@ -46,7 +46,7 @@
     "node": ">=18.17"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.39.0",
+    "@anthropic-ai/sdk": "^0.88.0",
     "@modelcontextprotocol/sdk": "^1.0.0",
     "@supabase/supabase-js": "^2.49.0",
     "zod": "^3.23.0"
