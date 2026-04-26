@@ -10,6 +10,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Web viewer UI for browsing memories (port 37777), matching the shape `claude-mem` ships.
 - Claude Code lifecycle-hooks capture path — auto-ingest tool usage without a client call.
 
+## [0.2.2] - 2026-04-26
+
+### Fixed
+- **`memory_items.source_session_id` missing from fresh installs.** The column existed in the original `rag-system` schema (TEXT) and is still present on stores upgraded from rag-system → Engram → Mnestra, but was dropped from the published Mnestra migration set during the rebrand. Rumen v0.4.x's Extract phase (`extract.ts:61`) groups memory_items by `source_session_id` to find eligible sessions for synthesis. On any fresh Mnestra install, every Rumen cron tick failed with `column m.source_session_id does not exist` (Postgres SQLSTATE 42703).
+- New `migrations/007_add_source_session_id.sql` adds the column back as `TEXT`, idempotent (`ADD COLUMN IF NOT EXISTS`), with a partial index on `WHERE source_session_id IS NOT NULL`. NULL on every existing row is the correct default — old memories were never tagged with a session, and Rumen's `WHERE source_session_id IS NOT NULL` filter excludes them naturally.
+
+### Notes
+- Reported 2026-04-26 by a TermDeck tester (Brad) whose fresh `termdeck init --mnestra` on v0.6.3 left him with a Mnestra schema that worked for TermDeck/Flashback but couldn't host Rumen. v0.6.4 unblocked his Rumen install (access-token hint), v0.6.5 of TermDeck (which bundles the same migration) closes the contract break.
+- Recovery for direct `@jhizzard/mnestra` users: `npm i -g @jhizzard/mnestra@latest`, then re-run your migration application step. The column lands idempotently. For TermDeck users, the recovery is `termdeck init --mnestra --yes` after upgrading to TermDeck v0.6.5+.
+
 ## [0.2.1] - 2026-04-19
 
 ### Added
