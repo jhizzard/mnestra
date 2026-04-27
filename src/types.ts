@@ -26,7 +26,21 @@ export type RelationshipType =
   | 'relates_to'
   | 'contradicts'
   | 'elaborates'
-  | 'caused_by';
+  | 'caused_by'
+  | 'blocks'
+  | 'inspired_by'
+  | 'cross_project_link';
+
+export const RELATIONSHIP_TYPES: RelationshipType[] = [
+  'supersedes',
+  'relates_to',
+  'contradicts',
+  'elaborates',
+  'caused_by',
+  'blocks',
+  'inspired_by',
+  'cross_project_link',
+];
 
 export interface MemoryItem {
   id: string;

@@ -8,6 +8,12 @@
 
 export { memoryRemember } from './remember.js';
 export { memoryRecall, type RecallOutput } from './recall.js';
+export {
+  memoryRecallGraph,
+  type GraphRecallInput,
+  type GraphRecallHit,
+  type GraphRecallOutput,
+} from './recall_graph.js';
 export { memorySearch } from './search.js';
 export { memoryForget } from './forget.js';
 export { memoryStatus, formatStatus } from './status.js';
@@ -25,4 +31,15 @@ export {
 } from './layered.js';
 export { generateEmbedding, formatEmbedding } from './embeddings.js';
 export { getSupabase, resetSupabaseClient } from './db.js';
+export {
+  memoryLink,
+  memoryUnlink,
+  memoryRelated,
+  type LinkInput,
+  type LinkResult,
+  type UnlinkInput,
+  type UnlinkResult,
+  type RelatedInput,
+  type RelatedNode,
+} from './relationships.js';
 export * from './types.js';

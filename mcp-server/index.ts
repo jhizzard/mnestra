@@ -23,6 +23,7 @@ import { z } from 'zod';
 import {
   memoryRemember,
   memoryRecall,
+  memoryRecallGraph,
   memorySearch,
   memoryForget,
   memoryStatus,
@@ -31,6 +32,9 @@ import {
   memoryIndex,
   memoryTimeline,
   memoryGet,
+  memoryLink,
+  memoryUnlink,
+  memoryRelated,
 } from '../src/index.js';
 import { startWebhookServer } from '../src/webhook-server.js';
 import { exportMemories, importMemories } from '../src/export-import.js';
@@ -233,6 +237,54 @@ server.registerTool(
       return { content: [{ type: 'text' as const, text: out.text }] };
     } catch (err) {
       console.error('[mnestra-mcp] memory_recall failed:', err);
+      return {
+        content: [{ type: 'text' as const, text: `Error: ${(err as Error).message}` }],
+      };
+    }
+  }
+);
+
+// ── memory_recall_graph ──────────────────────────────────────────────────
+
+server.registerTool(
+  'memory_recall_graph',
+  {
+    title: 'Recall (graph-aware)',
+    description:
+      'Graph-aware retrieval. Runs vector recall, then expands the top-K results through memory_relationships to depth N, and re-ranks the union by vector_score × edge_weight × recency_score. Returns memories with `depth` (0=vector hit, 1+=graph neighbor) and `final_score`. Use when you want context-by-association in addition to context-by-similarity.',
+    inputSchema: {
+      query: z.string().describe('What to search for in memory'),
+      project: z
+        .string()
+        .optional()
+        .describe('Filter by project (omit for cross-project search)'),
+      depth: z
+        .number()
+        .int()
+        .min(1)
+        .max(5)
+        .default(2)
+        .describe('Graph expansion depth (default 2, max 5)'),
+      k: z
+        .number()
+        .int()
+        .min(1)
+        .max(50)
+        .default(10)
+        .describe('Top-K seeds for vector recall before graph expansion (default 10)'),
+    },
+  },
+  async ({ query, project, depth, k }) => {
+    try {
+      const out = await memoryRecallGraph({
+        query,
+        project: project ?? null,
+        depth: depth || 2,
+        k: k || 10,
+      });
+      return { content: [{ type: 'text' as const, text: out.text }] };
+    } catch (err) {
+      console.error('[mnestra-mcp] memory_recall_graph failed:', err);
       return {
         content: [{ type: 'text' as const, text: `Error: ${(err as Error).message}` }],
       };
@@ -463,6 +515,148 @@ server.registerTool(
       return { content: [{ type: 'text' as const, text: JSON.stringify(rows, null, 2) }] };
     } catch (err) {
       console.error('[mnestra-mcp] memory_get failed:', err);
+      return {
+        content: [{ type: 'text' as const, text: `Error: ${(err as Error).message}` }],
+      };
+    }
+  }
+);
+
+// ── memory_link ──────────────────────────────────────────────────────────
+
+const RELATIONSHIP_KIND_ENUM = z.enum([
+  'supersedes',
+  'relates_to',
+  'contradicts',
+  'elaborates',
+  'caused_by',
+  'blocks',
+  'inspired_by',
+  'cross_project_link',
+]);
+
+server.registerTool(
+  'memory_link',
+  {
+    title: 'Link Memories',
+    description:
+      'Connect two memories with a typed relationship. Idempotent on (source_id, target_id, kind) — re-linking the same pair updates the weight rather than inserting a duplicate. Edges are bidirectional for traversal.',
+    inputSchema: {
+      source_id: z.string().uuid().describe('UUID of the source memory'),
+      target_id: z.string().uuid().describe('UUID of the target memory'),
+      kind: RELATIONSHIP_KIND_ENUM.describe(
+        'Edge type: supersedes, relates_to, contradicts, elaborates, caused_by, blocks, inspired_by, cross_project_link'
+      ),
+      weight: z
+        .number()
+        .min(0)
+        .max(1)
+        .optional()
+        .describe('Edge confidence in [0,1] (optional)'),
+    },
+  },
+  async ({ source_id, target_id, kind, weight }) => {
+    try {
+      const result = await memoryLink({
+        source_id,
+        target_id,
+        kind,
+        weight: weight ?? null,
+      });
+      if (!result.ok) {
+        return { content: [{ type: 'text' as const, text: `Error: ${result.error}` }] };
+      }
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `Edge ${result.action}: ${source_id} —[${kind}]→ ${target_id} (id: ${result.id})`,
+          },
+        ],
+      };
+    } catch (err) {
+      console.error('[mnestra-mcp] memory_link failed:', err);
+      return {
+        content: [{ type: 'text' as const, text: `Error: ${(err as Error).message}` }],
+      };
+    }
+  }
+);
+
+// ── memory_unlink ────────────────────────────────────────────────────────
+
+server.registerTool(
+  'memory_unlink',
+  {
+    title: 'Unlink Memories',
+    description:
+      'Remove a relationship between two memories. If `kind` is omitted, removes ALL kinds between the pair. Hard delete (no soft-delete archive — relationships are cheap to re-infer).',
+    inputSchema: {
+      source_id: z.string().uuid().describe('UUID of the source memory'),
+      target_id: z.string().uuid().describe('UUID of the target memory'),
+      kind: RELATIONSHIP_KIND_ENUM.optional().describe(
+        'Edge kind to remove. Omit to remove all kinds between the pair.'
+      ),
+    },
+  },
+  async ({ source_id, target_id, kind }) => {
+    try {
+      const result = await memoryUnlink({ source_id, target_id, kind });
+      if (!result.ok) {
+        return { content: [{ type: 'text' as const, text: `Error: ${result.error}` }] };
+      }
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `Removed ${result.removed} edge(s) between ${source_id} and ${target_id}${kind ? ` (kind=${kind})` : ''}.`,
+          },
+        ],
+      };
+    } catch (err) {
+      console.error('[mnestra-mcp] memory_unlink failed:', err);
+      return {
+        content: [{ type: 'text' as const, text: `Error: ${(err as Error).message}` }],
+      };
+    }
+  }
+);
+
+// ── memory_related ───────────────────────────────────────────────────────
+
+server.registerTool(
+  'memory_related',
+  {
+    title: 'Related Memories (graph traversal)',
+    description:
+      'Return the N-hop neighborhood of a memory by walking memory_relationships. Optional `kind` filter restricts to paths whose every edge has that type. Hydrated with content/source_type/project for each reachable memory. Cycle-safe.',
+    inputSchema: {
+      id: z.string().uuid().describe('UUID of the seed memory'),
+      depth: z
+        .number()
+        .int()
+        .min(1)
+        .max(5)
+        .default(2)
+        .describe('Max hops to traverse (1–5, default 2)'),
+      kind: RELATIONSHIP_KIND_ENUM.optional().describe(
+        'Filter to paths whose every edge has this kind (omit for all kinds)'
+      ),
+    },
+  },
+  async ({ id, depth, kind }) => {
+    try {
+      const rows = await memoryRelated({
+        id,
+        depth: depth || 2,
+        kind: kind ?? null,
+      });
+      if (rows.length === 0) {
+        return { content: [{ type: 'text' as const, text: 'No related memories found.' }] };
+      }
+      return { content: [{ type: 'text' as const, text: JSON.stringify(rows, null, 2) }] };
+    } catch (err) {
+      console.error('[mnestra-mcp] memory_related failed:', err);
       return {
         content: [{ type: 'text' as const, text: `Error: ${(err as Error).message}` }],
       };
