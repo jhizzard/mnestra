@@ -73,8 +73,13 @@ export async function memoryRemember(input: RememberInput): Promise<RememberResu
       .eq('id', top.id);
 
     if (updateError) {
-      console.error('[mnestra-store] update failed:', updateError.message);
-      return 'skipped';
+      // Surface the real Postgres/Supabase error to the caller instead of
+      // returning 'skipped' (which reads as "deduped" — exactly the wrong
+      // mental model when the actual failure is e.g. a missing GRANT).
+      // The MCP server, webhook server, and summarize.ts all already
+      // wrap memoryRemember in a try/catch and render the error message
+      // for the user.
+      throw new Error(`memory_items update failed: ${updateError.message}`);
     }
     return 'updated';
   }
@@ -89,8 +94,7 @@ export async function memoryRemember(input: RememberInput): Promise<RememberResu
   });
 
   if (insertError) {
-    console.error('[mnestra-store] insert failed:', insertError.message);
-    return 'skipped';
+    throw new Error(`memory_items insert failed: ${insertError.message}`);
   }
 
   return 'inserted';

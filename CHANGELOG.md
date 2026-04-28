@@ -9,6 +9,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Planned
 - Web viewer UI for browsing memories (port 37777), matching the shape `claude-mem` ships.
 - Claude Code lifecycle-hooks capture path — auto-ingest tool usage without a client call.
+- `mnestra doctor` subcommand — runs `select 1 from memory_items limit 0` (catches GRANT issues), an embedding ping, and an RPC probe; prints a green/red checklist. (Brad's third upstream suggestion 2026-04-28; deferred from 0.3.2.)
+
+## [0.3.2] - 2026-04-28
+
+### Fixed — Brad install incident: silent permission-denied failures (root-caused 2026-04-28)
+
+- **NEW migration `014_explicit_grants.sql`** ships explicit `GRANT` statements that prior migrations relied on Supabase's auto-grant default to provide. Schema-wide on `service_role` (Mnestra's only direct connection role) for tables, plus `service_role / authenticated / anon` for functions, plus `alter default privileges` so any future tables/RPCs we add inherit the same grants automatically. Idempotent — no-op on greenfield projects where the auto-grant default already fired.
+- **`src/remember.ts` no longer silently swallows insert/update errors.** Lines 75-82 (update path) and 96-98 (insert path) previously logged to stderr and returned `'skipped'` to the MCP caller — which reads as "deduped" — masking real failures (e.g. missing GRANTs) as expected behavior. Now throws the actual error message; the MCP server, webhook server, and `summarize.ts` all already wrap `memoryRemember` in try/catch and surface `err.message` to the user. `RememberResult` type unchanged.
+
+### Notes
+
+- **Root cause attribution.** Brad Heath surfaced the bug 2026-04-28 against project ref `rrzkceirgciiqgeefvbe` (his "jizzard-brain tools" Mnestra-dedicated Supabase). Symptom: `memory_remember` returned `Memory skipped: "..."`, `memory_status` showed 0 memories, `memory_recall` returned `Search error: permission denied for table memory_items`. He proved the Postgres `service_role` had no SELECT/INSERT/UPDATE on `memory_items` via direct curl with the literal JWT (HTTP 403, code 42501) — ruling out env propagation, RLS, and anon-key fallback. Applied the schema-wide fix as a one-shot migration; verified end-to-end (insert + status + recall) with the same env vars and MCP process — confirms fix is purely at the database GRANT level.
+- **Why this only bit some installs.** Supabase auto-grants public-schema privileges to anon/authenticated/service_role only when (a) the creating role is `postgres` or another role in the auto-grant chain AND (b) the project's default privileges in schema public haven't been tightened. Projects where one of those preconditions failed silently lost the GRANTs; users got the misleading "Memory skipped" return with no diagnostic.
+- **Validation.** TypeScript clean, full test suite 39/39 pass, including `dispatchOp wraps thrown errors as 500` which confirms the webhook layer correctly renders thrown errors as `{ ok: false, error: <message> }`.
 
 ## [0.3.1] - 2026-04-28
 
