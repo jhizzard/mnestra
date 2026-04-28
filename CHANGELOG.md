@@ -10,6 +10,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Web viewer UI for browsing memories (port 37777), matching the shape `claude-mem` ships.
 - Claude Code lifecycle-hooks capture path — auto-ingest tool usage without a client call.
 
+## [0.3.1] - 2026-04-28
+
+### Added — Sprint 41 mirror migrations (TermDeck Sprint 41 close-out)
+
+- **NEW migration `012_project_tag_re_taxonomy.sql`** (397 LOC, byte-identical mirror of TermDeck's bundled copy). Re-tags historical chopin-nashville rows using the new project taxonomy. Eight buckets (broadest-first): termdeck, rumen, podium, chopin-in-bohemia, chopin-scheduler+Maestro alias, pvb, claimguard, dor. Idempotent on re-run. `[012-retaxonomy]` RAISE NOTICE prefix on all 11 probes. Live-applied at TermDeck Sprint 41 close: 957 → 896 chopin-nashville rows after the deterministic pass.
+- **NEW migration `013_reclassify_uncertain.sql`** (39 LOC). Adds `reclassified_by text` + `reclassified_at timestamptz` columns to `memory_items` plus a partial index filtered to non-NULL rows (keeps the index small). Idempotent (`add column if not exists`). Used by TermDeck's `scripts/reclassify-chopin-nashville.js` to stamp LLM-classified rows for audit + idempotent re-runs. After TermDeck Sprint 41 T4's full reclassify pass landed (~$0.18 Anthropic spend, 896 rows classified across 45 batches with zero errors), the chopin-nashville count dropped 896 → 40.
+
+### Notes
+
+- These migrations ship in the TermDeck-bundled `mnestra-migrations/` directory at the same time. The TermDeck migration runner (bundled-FIRST per v0.6.8+) picks them up automatically on a fresh install. The Mnestra-repo copies are for direct-`psql` users who consume `@jhizzard/mnestra` standalone.
+- No `dist/` changes — these are SQL-only additions. Mnestra package.json `files` array already includes `migrations/`.
+
 ## [0.3.0] - 2026-04-27
 
 ### Added — Knowledge graph MCP layer (TermDeck Sprint 38)
