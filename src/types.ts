@@ -83,11 +83,35 @@ export interface RememberInput {
 
 export type RememberResult = 'inserted' | 'updated' | 'skipped';
 
+/**
+ * Sprint 50 T2 (TermDeck): identity of the LLM that produced a memory row.
+ * Stored on `memory_items.source_agent`; populated by SessionEnd hooks
+ * (Claude direct, plus TermDeck's per-adapter panel-close trigger from
+ * Sprint 50 T1). NULL for historical rows that pre-date the column —
+ * see migrations/015_source_agent.sql for the backfill rule.
+ */
+export type SourceAgent = 'claude' | 'codex' | 'gemini' | 'grok' | 'orchestrator';
+
+export const SOURCE_AGENTS: SourceAgent[] = [
+  'claude',
+  'codex',
+  'gemini',
+  'grok',
+  'orchestrator',
+];
+
 export interface RecallInput {
   query: string;
   project?: string | null;
   token_budget?: number;
   min_results?: number;
+  /**
+   * Filter results by the source agent that produced each row. Omit (or
+   * pass an empty array) for no filter — the default, returns all agents.
+   * When set, rows with NULL source_agent (historical, pre-Sprint-50 except
+   * the backfilled session_summary rows) are excluded.
+   */
+  source_agents?: string[] | null;
 }
 
 export interface RecallHit {

@@ -10,9 +10,18 @@
  *   happens AFTER the minimum-result guarantee.
  */
 
+import type { SupabaseClient } from '@supabase/supabase-js';
+
 import { getSupabase } from './db.js';
 import { generateEmbedding, formatEmbedding } from './embeddings.js';
 import type { RecallHit, RecallInput } from './types.js';
+
+export interface RecallDeps {
+  /** Override the Supabase client (tests inject a fake). */
+  client?: SupabaseClient;
+  /** Override the embedding generator (tests bypass the OpenAI call). */
+  generateEmbedding?: (text: string) => Promise<number[]>;
+}
 
 const DEFAULT_TOKEN_BUDGET = 2000;
 const DEFAULT_MIN_RESULTS = 5;
@@ -78,7 +87,10 @@ export interface RecallOutput {
   text: string;
 }
 
-export async function memoryRecall(input: RecallInput): Promise<RecallOutput> {
+export async function memoryRecall(
+  input: RecallInput,
+  deps: RecallDeps = {}
+): Promise<RecallOutput> {
   const query = input.query.trim();
   if (!query) {
     return { hits: [], tokens_used: 0, text: 'No relevant memories found.' };
@@ -87,12 +99,22 @@ export async function memoryRecall(input: RecallInput): Promise<RecallOutput> {
   const budget = input.token_budget ?? DEFAULT_TOKEN_BUDGET;
   const minResults = input.min_results ?? DEFAULT_MIN_RESULTS;
   const project = input.project ?? null;
+  // Sprint 50 T2: empty array == omitted (no filter). Match the
+  // recall-source-agent.test.ts expectation that an explicitly-passed
+  // `source_agents: []` is a no-op rather than a "match nothing" filter —
+  // empty-string defaults from MCP clients shouldn't accidentally suppress
+  // every row.
+  const sourceAgents =
+    Array.isArray(input.source_agents) && input.source_agents.length > 0
+      ? input.source_agents
+      : null;
 
   // Over-fetch so dedup + rank have material to work with.
   const fetchCount = Math.min(Math.max(Math.floor(budget / 50), 10), 40);
 
-  const supabase = getSupabase();
-  const embedding = await generateEmbedding(query);
+  const supabase = deps.client ?? getSupabase();
+  const embed = deps.generateEmbedding ?? generateEmbedding;
+  const embedding = await embed(query);
 
   const { data, error } = await supabase.rpc('memory_hybrid_search', {
     query_text: query,
@@ -110,9 +132,45 @@ export async function memoryRecall(input: RecallInput): Promise<RecallOutput> {
     return { hits: [], tokens_used: 0, text: `Search error: ${error.message}` };
   }
 
-  const rows = (data ?? []) as RecallHit[];
+  let rows = (data ?? []) as RecallHit[];
   if (rows.length === 0) {
     return { hits: [], tokens_used: 0, text: 'No relevant memories found.' };
+  }
+
+  // Sprint 50 T2 — source_agent filter. memory_hybrid_search doesn't return
+  // source_agent (would require a DROP+CREATE on the hot RPC; intentionally
+  // out of scope for migration 015). Instead, fetch the column for the
+  // candidate rows in a single batch and filter in JS. Zero overhead when
+  // the filter is omitted (the common case).
+  if (sourceAgents) {
+    const ids = rows.map((r) => r.id);
+    const { data: agentRows, error: agentErr } = await supabase
+      .from('memory_items')
+      .select('id, source_agent')
+      .in('id', ids);
+    if (agentErr) {
+      console.error(
+        '[mnestra-search] source_agent lookup failed:',
+        agentErr.message
+      );
+      return { hits: [], tokens_used: 0, text: `Search error: ${agentErr.message}` };
+    }
+    const agentMap = new Map<string, string | null>(
+      ((agentRows ?? []) as { id: string; source_agent: string | null }[]).map(
+        (r) => [r.id, r.source_agent]
+      )
+    );
+    rows = rows.filter((r) => {
+      const agent = agentMap.get(r.id);
+      // NULL source_agent means historical / unknown provenance — exclude
+      // from explicitly-filtered recall. Backfilled session_summary rows
+      // already carry source_agent='claude' via migration 015.
+      if (!agent) return false;
+      return sourceAgents.includes(agent);
+    });
+    if (rows.length === 0) {
+      return { hits: [], tokens_used: 0, text: 'No relevant memories found.' };
+    }
   }
 
   // Pipeline: dedup -> rank. Do NOT drop anything on a score threshold here.

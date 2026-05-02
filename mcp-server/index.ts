@@ -233,7 +233,7 @@ server.registerTool(
   {
     title: 'Recall',
     description:
-      'Smart retrieval of relevant memories. Returns concise, deduplicated results within a token budget. Prioritizes decisions and bug fixes over raw document chunks. Always returns at least min_results hits when available. Omit project to search across ALL projects.',
+      'Smart retrieval of relevant memories. Returns concise, deduplicated results within a token budget. Prioritizes decisions and bug fixes over raw document chunks. Always returns at least min_results hits when available. Omit project to search across ALL projects. Optionally filter by source_agents to recall only rows produced by specific LLMs (claude/codex/gemini/grok/orchestrator).',
     inputSchema: {
       query: z.string().describe('What to search for in memory'),
       project: z
@@ -250,15 +250,22 @@ server.registerTool(
         .describe(
           'Minimum number of hits to return if that many exist, regardless of score threshold.'
         ),
+      source_agents: z
+        .array(z.enum(['claude', 'codex', 'gemini', 'grok', 'orchestrator']))
+        .optional()
+        .describe(
+          'Filter to memories produced by specific source agents. Omit (or empty array) for all agents. NULL-source-agent rows (historical, pre-Sprint-50) are excluded when this filter is set.'
+        ),
     },
   },
-  async ({ query, project, token_budget, min_results }) => {
+  async ({ query, project, token_budget, min_results, source_agents }) => {
     try {
       const out = await memoryRecall({
         query,
         project: project ?? null,
         token_budget: token_budget || 2000,
         min_results: min_results || 5,
+        source_agents: source_agents ?? null,
       });
       return { content: [{ type: 'text' as const, text: out.text }] };
     } catch (err) {
