@@ -12,6 +12,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `mnestra doctor` subcommand — runs `select 1 from memory_items limit 0` (catches GRANT issues), an embedding ping, and an RPC probe; prints a green/red checklist. (Brad's third upstream suggestion 2026-04-28; deferred from 0.3.2.)
 - Trust-weighted recall (Path B from `docs/MULTI-AGENT-MEMORY-ARCHITECTURE.md` § Deliverable 2): `trust` JSONB param on `memory_recall` mapping agent → weight so mixed-agent recalls rank Claude rows higher rather than excluding the others. Deferred — Path A (filter) shipped first; revisit after live use exposes whether weights would improve outcomes.
 
+## [0.4.2] - 2026-05-04
+
+### Added — Sprint 51.6 T3 (TermDeck): migration 017 — `memory_sessions` schema reconciliation for the bundled session-end hook
+
+- **NEW migration `017_memory_sessions_session_metadata.sql`** reconciles canonical engram `memory_sessions` (mig 001) with the rag-system writer's richer column set so TermDeck's bundled hook (`@jhizzard/termdeck-stack@0.6.2`) can write a uniform shape on both fresh-canonical installs and Joshua's daily-driver `petvetbid` (which had been receiving rows from a now-overwritten personal hook). Adds nullable columns: `session_id text`, `summary_embedding vector(1536)`, `started_at`, `ended_at`, `duration_minutes`, `messages_count`, `facts_extracted`, `files_changed jsonb default '[]'`, `topics jsonb default '[]'`, `transcript_path text`. Idempotent (`ADD COLUMN IF NOT EXISTS`). Unique constraint on `session_id` is wrapped in a `do`-block scoped by `conrelid = 'public.memory_sessions'::regclass` (catches the case where Joshua's petvetbid already has the constraint from the rag-system bootstrap). HNSW index on `summary_embedding` + ended-at index for recency queries. Verified to apply cleanly on petvetbid in a `BEGIN ... ROLLBACK` transaction probe.
+
+### Notes
+
+- **Cross-repo coordination.** Sprint 51.6 ships this alongside `@jhizzard/termdeck@1.0.2` (audit-upgrade extended to 10 probes including memory_sessions.session_id) and `@jhizzard/termdeck-stack@0.6.2` (bundled hook now writes both `memory_items` AND `memory_sessions` per the rich shape that mig 017 enables). Migration 017 must apply BEFORE the bundled hook starts inserting `memory_sessions` rows on the new schema — orchestrator handles the apply-then-publish ordering at sprint close.
+- **Why this migration exists** (architectural context). Sprint 50's bundled session-end hook only writes `memory_items`. Joshua's daily-driver Mnestra had been receiving `memory_sessions` rows from his personal `~/Documents/Graciella/rag-system/src/scripts/process-session.ts` writer until 2026-05-02 13:24 ET when a `termdeck init` overwrote `~/.claude/hooks/memory-session-end.js` with the bundled hook. Since then, `memory_sessions` stopped accumulating. T2 + T1 of Sprint 51.6 reclassified the bug as **Class M — architectural omission, not execution failure**. Mig 017 is the schema half of the fix; the bundled hook in `@jhizzard/termdeck-stack@0.6.2` is the code half. Together they restore parity with Joshua's pre-swap experience AND give every fresh canonical install the rich shape from day one.
+
 ## [0.4.0] - 2026-05-02
 
 ### Added — Sprint 50 T2 (TermDeck): `source_agent` provenance column + recall filter
